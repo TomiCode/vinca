@@ -3,10 +3,10 @@ package main
 import "log"
 import "net/http"
 
-var sys_config = Config{}
+var vincaConfig = VincaConfig{}
 
 func main() {
-    if sys_config.LoadConfig("config.json") != nil {
+    if vincaConfig.LoadConfig("config.json") != nil {
         return
     }
     log.Println("Starting vinca server..")

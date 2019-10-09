@@ -4,11 +4,11 @@ import "os"
 import "log"
 import "encoding/json"
 
-type Config struct {
+type VincaConfig struct {
     Database string `json:"database"`
 }
 
-func (cfg* Config) LoadConfig(file string) error {
+func (cfg* VincaConfig) LoadConfig(file string) error {
     conf, err := os.Open(file)
     if err == os.ErrNotExist {
         log.Println("Configuration file does not exist:", file)
