@@ -4,16 +4,6 @@ import "log"
 import "net/http"
 import "encoding/json"
 
-type AuthLoginReq struct {
-    Username string `json:"username"`
-    Password string `json:"password"`
-}
-
-type AuthRegisterReq struct {
-    Username string `json:"username"`
-    Email string `json:"email"`
-    Password string `json:"password"`
-}
 
 func init() {
     http.HandleFunc("/api/v1/auth/login", CorsFunc(api_auth_login))
@@ -21,18 +11,30 @@ func init() {
 }
 
 func api_auth_login(w http.ResponseWriter, r *http.Request) {
-    var request = AuthLoginReq{}
-    if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+    var params = UserParam{}
+    if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
         log.Println("error:", err)
         return
     }
 }
 
 func api_auth_register(w http.ResponseWriter, r *http.Request) {
-    var request = AuthRegisterReq{}
-    if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+    var usr = User{}
+    if err := json.NewDecoder(r.Body).Decode(&usr.UserParam); err != nil {
         log.Println("error:", err)
         return
     }
-    log.Printf("%v\n", request)
+    log.Printf("%v\n", usr)
+
+    if !usr.Valid() {
+        log.Println("invalid user data received, try again")
+        return
+    }
+
+    if !vincaDatabase.UserSave(&usr) {
+        log.Println("failure while data save.")
+        return
+    }
+
+    json.NewEncoder(w).Encode(true)
 }
