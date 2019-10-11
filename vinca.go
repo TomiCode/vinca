@@ -4,7 +4,10 @@ import "log"
 import "net/http"
 
 var vincaConfig = VincaConfig{}
+
 var vincaDatabase = VincaDatabase{}
+
+var vincaSessions = make(SessionContainer)
 
 func main() {
     if vincaConfig.LoadConfig("config.json") != nil {

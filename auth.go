@@ -4,6 +4,10 @@ import "log"
 import "net/http"
 import "encoding/json"
 
+type LoginResponse struct {
+    Uuid string `json:"uuid"`
+    User
+}
 
 func init() {
     http.HandleFunc("/api/v1/auth/login", CorsFunc(api_auth_login))
@@ -16,6 +20,23 @@ func api_auth_login(w http.ResponseWriter, r *http.Request) {
         log.Println("error:", err)
         return
     }
+
+    usr := vincaDatabase.FetchUser(params.Email)
+    if usr == nil {
+        log.Println("unable to find requested user")
+        return
+    }
+
+    if !usr.Authenticate(params.Password) {
+        log.Println("nah, invalid password, try again")
+        return
+    }
+    suid := vincaSessions.CreateSession(usr)
+
+    json.NewEncoder(w).Encode(LoginResponse{
+        Uuid: suid.String(),
+        User: *usr,
+    })
 }
 
 func api_auth_register(w http.ResponseWriter, r *http.Request) {
@@ -36,5 +57,5 @@ func api_auth_register(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    json.NewEncoder(w).Encode(true)
+    json.NewEncoder(w).Encode(usr)
 }

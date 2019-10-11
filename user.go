@@ -7,14 +7,14 @@ import "golang.org/x/crypto/bcrypt"
 type UserParam struct {
     Username string `json:"username"`
     Email string `json:"email"`
-    Password string `json:"password"`
+    Password string `json:"password,omitempty"`
 }
 
 type User struct {
     UserParam
-    Id int
-    Avatar string
-    LastUsed bool
+    Id int  `json:"-"`
+    Avatar string `json:"avatar"`
+    LastUsed bool `json:"last_used"`
     hash []byte
 }
 
@@ -74,3 +74,14 @@ func (v *VincaDatabase) FetchUser(email string) *User {
     return usr
 }
 
+func (v *VincaDatabase) FetchUserFromSession(session *VincaSession) *User {
+    var usr = &User{}
+    err := v.db.QueryRow("select * from users where id = ?", session.userid).Scan(
+        &usr.Id, &usr.Username, &usr.Email, &usr.hash, &usr.Avatar, &usr.LastUsed,
+    )
+    if err != nil {
+        log.Println("no user for session:", err)
+        return nil
+    }
+    return usr
+}
