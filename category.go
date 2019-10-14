@@ -10,7 +10,7 @@ type Category struct {
 }
 
 func (v *VincaDatabase) FetchCategories(usr *User) []*Category {
-    rows, err := v.db.Query("select id, title, description, icon from categories where user_id = ?", usr.Id)
+    rows, err := v.db.Query("select id, name, description, icon from categories where user_id = ?", usr.Id)
     if err != nil {
         log.Println("unable to fetch categories for user", usr.Username)
         return nil
@@ -26,4 +26,22 @@ func (v *VincaDatabase) FetchCategories(usr *User) []*Category {
         categories = append(categories, category)
     }
     return categories
+}
+
+func (v *VincaDatabase) SaveCategory(ct *Category, usr *User) error {
+    res, err := v.db.Exec("insert into categories(user_id, name, description, icon) values(?,?,?,?)",
+                        usr.Id, ct.Title, ct.Description, ct.Icon)
+    if err != nil {
+        log.Println("unable to save category to db:", err)
+        return err
+    }
+
+    cid, err := res.LastInsertId()
+    if err != nil {
+        log.Println("unable to fetch id from table.")
+        return nil
+    }
+
+    ct.Id = int(cid)
+    return nil
 }
