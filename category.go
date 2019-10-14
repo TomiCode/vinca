@@ -2,11 +2,15 @@ package main
 
 import "log"
 
-type Category struct {
-    Id int `json:"id"`
+type CategoryRequest struct {
     Title string `json:"title"`
     Description string `json:"description"`
     Icon string `json:"icon"`
+}
+
+type Category struct {
+    Id int `json:"id"`
+    CategoryRequest
 }
 
 func (v *VincaDatabase) FetchCategories(usr *User) []*Category {
