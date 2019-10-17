@@ -13,7 +13,7 @@ func CorsFunc(handler http.HandlerFunc) http.HandlerFunc {
         headers.Add("Vary", "Origin")
         headers.Add("Vary", "Access-Control-Request-Method")
         headers.Add("Vary", "Access-Control-Request-Headers")
-        headers.Add("Access-Control-Allow-Headers", "Content-Type, Origin, Accept, Aurora-Auth")
+        headers.Add("Access-Control-Allow-Headers", "Content-Type, Origin, Accept, Vinca-Authentication")
         headers.Add("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
     }
 }

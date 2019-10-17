@@ -25,7 +25,7 @@ type ContainerRequest struct {
 }
 
 func api_container_get(w http.ResponseWriter, r *http.Request) {
-    suid, err := uuid.Parse(r.Header.Get("VincaAuthentication"))
+    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
         return
@@ -46,7 +46,7 @@ func api_container_get(w http.ResponseWriter, r *http.Request) {
 }
 
 func api_container_create(w http.ResponseWriter, r *http.Request) {
-    suid, err := uuid.Parse(r.Header.Get("VincaAuthentication"))
+    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
         return
@@ -78,7 +78,7 @@ func api_container_create(w http.ResponseWriter, r *http.Request) {
 }
 
 func api_categories(w http.ResponseWriter, r *http.Request) {
-    suid, err := uuid.Parse(r.Header.Get("VincaAuthentication"))
+    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
         return
@@ -98,7 +98,7 @@ func api_category_get(w http.ResponseWriter, r *http.Request) {
 }
 
 func api_category_create(w http.ResponseWriter, r *http.Request) {
-    suid, err := uuid.Parse(r.Header.Get("VincaAuthentication"))
+    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
         return
