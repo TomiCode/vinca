@@ -9,7 +9,7 @@ type Container struct {
     Encrypted []byte `json:"encrypted"`
 }
 
-// Currently we support only single containers per user.
+// Currently we support only a single container per user.
 func (v *VincaDatabase) FetchContainer(usr *User) *Container {
     row := v.db.QueryRow("select id, name, public, encrypted from containers where user_id = ? limit 1", usr.Id)
 

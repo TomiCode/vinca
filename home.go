@@ -12,6 +12,9 @@ func init() {
     http.HandleFunc("/api/v1/home/categories", CorsFunc(api_categories))
     http.HandleFunc("/api/v1/home/category/create", CorsFunc(api_category_create))
     http.HandleFunc("/api/v1/home/category", CorsFunc(api_category_get))
+
+    http.HandleFunc("/api/v1/home/stores", CorsFunc(api_stores))
+    http.HandleFunc("/api/v1/home/store/content", CorsFunc(api_store_content))
 }
 
 type ContainerResponse struct {
@@ -22,6 +25,14 @@ type ContainerResponse struct {
 type ContainerRequest struct {
     Encrypted []byte `json:"encrypted"`
     Certificate []byte `json:"certificate"`
+}
+
+type StoreContentRequest struct {
+    StoreId int `json:"store_id"`
+}
+
+type StoreResponse struct {
+    Stores []Store `json:"stores"`
 }
 
 func api_container_get(w http.ResponseWriter, r *http.Request) {
@@ -121,4 +132,49 @@ func api_category_create(w http.ResponseWriter, r *http.Request) {
         return
     }
     json.NewEncoder(w).Encode(category)
+}
+
+func api_stores(w http.ResponseWriter, r *http.Request) {
+    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
+    if err != nil {
+        log.Println("unable to fetch session for user:", err)
+        return
+    }
+
+    usr := vincaSessions.SessionUser(suid)
+    if usr == nil {
+        log.Println("invalid session user")
+        return
+    }
+
+    json.NewEncoder(w).Encode(StoreResponse{
+        Stores: vincaDatabase.FetchStores(usr),
+    })
+}
+
+func api_store_content(w http.ResponseWriter, r *http.Request) {
+    var param = StoreContentRequest{}
+    if err := json.NewDecoder(r.Body).Decode(&param); err != nil {
+        log.Println("unable to fetch store_id:", err)
+        return
+    }
+
+    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
+    if err != nil {
+        log.Println("unable to fetch session for user:", err)
+        return
+    }
+
+    usr := vincaSessions.SessionUser(suid)
+    if usr == nil {
+        log.Println("invalid session user")
+        return
+    }
+
+    var localStore = Store{Id: param.StoreId}
+    if err := vincaDatabase.FetchStoreContent(usr, &localStore); err != nil {
+        log.Println("unable to fetch store:", err)
+        return
+    }
+    json.NewEncoder(w).Encode(localStore)
 }
