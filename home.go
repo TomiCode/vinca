@@ -15,6 +15,7 @@ func init() {
 
     http.HandleFunc("/api/v1/home/stores", CorsFunc(api_stores))
     http.HandleFunc("/api/v1/home/store/content", CorsFunc(api_store_content))
+    http.HandleFunc("/api/v1/home/store/create", CorsFunc(api_store_create))
 }
 
 type ContainerResponse struct {
@@ -177,4 +178,32 @@ func api_store_content(w http.ResponseWriter, r *http.Request) {
         return
     }
     json.NewEncoder(w).Encode(localStore)
+}
+
+func api_store_create(w http.ResponseWriter, r *http.Request) {
+    var param = StoreParam{}
+    if err := json.NewDecoder(r.Body).Decode(&param); err != nil {
+        log.Println("unable to fetch store_id:", err)
+        return
+    }
+
+    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
+    if err != nil {
+        log.Println("unable to fetch session for user:", err)
+        return
+    }
+
+    usr := vincaSessions.SessionUser(suid)
+    if usr == nil {
+        log.Println("invalid session user")
+        return
+    }
+
+    var store = Store{StoreParam: param}
+    if err = vincaDatabase.SaveStore(usr, &store); err != nil {
+        log.Println("unable to save store to database.")
+        return
+    }
+
+    json.NewEncoder(w).Encode(store)
 }

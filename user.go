@@ -63,7 +63,7 @@ func (v *VincaDatabase) UserSave(usr *User) bool {
 
 func (v *VincaDatabase) FetchUser(email string) *User {
     var usr = &User{}
-    err := v.db.QueryRow("select * from users where email = ?", email).Scan(
+    err := v.db.QueryRow("select id, username, email, password, avatar, show_last_used from users where email = ?", email).Scan(
         &usr.Id, &usr.Username, &usr.Email, &usr.hash, &usr.Avatar, &usr.LastUsed,
     )
 
@@ -76,8 +76,8 @@ func (v *VincaDatabase) FetchUser(email string) *User {
 
 func (v *VincaDatabase) FetchUserFromSession(session *VincaSession) *User {
     var usr = &User{}
-    err := v.db.QueryRow("select * from users where id = ?", session.userid).Scan(
-        &usr.Id, &usr.Username, &usr.Email, &usr.hash, &usr.Avatar, &usr.LastUsed,
+    err := v.db.QueryRow("select id, username, email, avatar, show_last_used from users where id = ?", session.userid).Scan(
+        &usr.Id, &usr.Username, &usr.Email, &usr.Avatar, &usr.LastUsed,
     )
     if err != nil {
         log.Println("no user for session:", err)

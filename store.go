@@ -55,3 +55,22 @@ func (v *VincaDatabase) FetchStoreContent(usr *User, st *Store) error {
     log.Println("fetch store content for", usr.Username)
     return nil
 }
+
+func (v *VincaDatabase) SaveStore(usr *User, st *Store) error {
+    res, err := v.db.Exec("insert into stores(user_id, container_id, category_id, name, icon, color, content) values(?,?,?,?,?,?,?)",
+            usr.Id, st.Container, st.Category, st.Name, st.Icon, st.Color, st.Content)
+
+    if err != nil {
+        log.Println("unable to insert store:", err)
+        return err
+    }
+
+    sid, err := res.LastInsertId()
+    if err != nil {
+        log.Println("unable to fetch last insert id:", err)
+        return err
+    }
+
+    st.Id = int(sid)
+    return nil
+}
