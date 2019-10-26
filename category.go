@@ -3,9 +3,9 @@ package main
 import "log"
 
 type CategoryRequest struct {
-    Title string `json:"title"`
+    Name string `json:"name"`
     Description string `json:"description"`
-    Icon string `json:"icon"`
+    Icon int `json:"icon"`
 }
 
 type Category struct {
@@ -23,7 +23,7 @@ func (v *VincaDatabase) FetchCategories(usr *User) []*Category {
     var categories []*Category
     for rows.Next() {
         var category = &Category{}
-        if err = rows.Scan(&category.Id, &category.Title, &category.Description, &category.Icon); err != nil {
+        if err = rows.Scan(&category.Id, &category.Name, &category.Description, &category.Icon); err != nil {
             log.Println("category fetch err:", err)
             continue
         }
@@ -34,7 +34,7 @@ func (v *VincaDatabase) FetchCategories(usr *User) []*Category {
 
 func (v *VincaDatabase) SaveCategory(ct *Category, usr *User) error {
     res, err := v.db.Exec("insert into categories(user_id, name, description, icon) values(?,?,?,?)",
-                        usr.Id, ct.Title, ct.Description, ct.Icon)
+                        usr.Id, ct.Name, ct.Description, ct.Icon)
     if err != nil {
         log.Println("unable to save category to db:", err)
         return err

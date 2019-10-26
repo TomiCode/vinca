@@ -36,6 +36,11 @@ type StoreResponse struct {
     Stores []Store `json:"stores"`
 }
 
+type CategoryResponse struct {
+    Created *Category `json:"created"`
+    Categories []*Category `json:"categories"`
+}
+
 func api_container_get(w http.ResponseWriter, r *http.Request) {
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
@@ -132,7 +137,11 @@ func api_category_create(w http.ResponseWriter, r *http.Request) {
         log.Println("unable to save category to database:", err)
         return
     }
-    json.NewEncoder(w).Encode(category)
+
+    json.NewEncoder(w).Encode(CategoryResponse{
+        Created: &category,
+        Categories: vincaDatabase.FetchCategories(usr),
+    })
 }
 
 func api_stores(w http.ResponseWriter, r *http.Request) {
