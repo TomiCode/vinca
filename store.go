@@ -2,6 +2,7 @@ package main
 
 import "log"
 import "time"
+import "database/sql"
 
 type Store struct {
     Id int `json:"id"`
@@ -23,6 +24,43 @@ type StoreParam struct {
 func (v *VincaDatabase) FetchStores(usr *User) []Store {
     rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, icon, color from stores where user_id = ?", usr.Id)
     if err != nil {
+        log.Println("unable to fetch stores:", err)
+        return nil
+    }
+
+    var stores []Store
+    for rows.Next() {
+        var st = Store{}
+        err = rows.Scan(&st.Id, &st.Container, &st.Category,
+                        &st.Created, &st.LastUsed, &st.Modified,
+                        &st.Name, &st.Icon, &st.Color)
+        if err != nil {
+            log.Println("unable to scan single store:", err)
+            continue
+        }
+
+        stores = append(stores, st)
+    }
+
+    log.Println("fetch stories for", usr.Username)
+    return stores
+}
+
+func (v *VincaDatabase) FetchStoresWith(usr *User, params *CategoryRequest) []Store {
+    var rows *sql.Rows = nil
+    var err error = nil
+
+    if params.Category == 0 {
+        if params.Global == 1 {
+            rows, err = v.db.Query("select id, container_id, category_id, created, last_used, modified, name, icon, color from stores where user_id = ? and category_id = 0", usr.Id)
+        } else if params.Global == 2 {
+            rows, err = v.db.Query("select id, container_id, category_id, created, last_used, modified, name, icon, color from stores where user_id = ? order by last_used limit 16", usr.Id)
+        }
+    } else {
+        rows, err = v.db.Query("select id, container_id, category_id, created, last_used, modified, name, icon, color from stores where user_id = ? and category_id = ?", usr.Id, params.Category)
+    }
+
+    if err != nil || rows == nil {
         log.Println("unable to fetch stores:", err)
         return nil
     }

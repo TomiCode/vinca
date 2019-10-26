@@ -21,6 +21,7 @@ func init() {
 type ContainerResponse struct {
     Valid bool `json:"valid"`
     Container
+    Categories []*Category `json:"categories"`
 }
 
 type ContainerRequest struct {
@@ -41,6 +42,11 @@ type CategoryResponse struct {
     Categories []*Category `json:"categories"`
 }
 
+type CategoryRequest struct {
+    Category int `json:"category"`
+    Global int `json:"global,omitempty"`
+}
+
 func api_container_get(w http.ResponseWriter, r *http.Request) {
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
@@ -59,7 +65,12 @@ func api_container_get(w http.ResponseWriter, r *http.Request) {
         json.NewEncoder(w).Encode(ContainerResponse{Valid: false})
         return
     }
-    json.NewEncoder(w).Encode(ContainerResponse{Valid: true, Container: *container})
+
+    json.NewEncoder(w).Encode(ContainerResponse{
+        Valid: true,
+        Container: *container,
+        Categories: vincaDatabase.FetchCategories(usr),
+    })
 }
 
 func api_container_create(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +122,25 @@ func api_categories(w http.ResponseWriter, r *http.Request) {
 }
 
 func api_category_get(w http.ResponseWriter, r *http.Request) {
+    var param = CategoryRequest{}
+    if err := json.NewDecoder(r.Body).Decode(&param); err != nil {
+        log.Println("unable to fetch category id")
+        return
+    }
 
+    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
+    if err != nil {
+        log.Println("unable to fetch session for user:", err)
+        return
+    }
+
+    usr := vincaSessions.SessionUser(suid)
+    if usr == nil {
+        log.Println("invalid session user")
+        return
+    }
+
+    json.NewEncoder(w).Encode(vincaDatabase.FetchStoresWith(usr, &param))
 }
 
 func api_category_create(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +157,7 @@ func api_category_create(w http.ResponseWriter, r *http.Request) {
     }
 
     var category = Category{}
-    if err = json.NewDecoder(r.Body).Decode(&category.CategoryRequest); err != nil {
+    if err = json.NewDecoder(r.Body).Decode(&category.CategoryParams); err != nil {
         log.Println("unable to decode params:", err)
         return
     }
