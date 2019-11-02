@@ -1,6 +1,10 @@
 package main
 
+import "github.com/google/uuid"
+import "fmt"
 import "log"
+
+const AuthSessionUser int = 0x1001
 
 type LoginResponse struct {
     Uuid string `json:"uuid"`
@@ -50,4 +54,22 @@ func api_auth_register(r *Request) interface{} {
         return nil
     }
     return usr
+}
+
+func auth_middleware(r *Request) error {
+    log.Println("auth_middleware")
+
+    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
+    if err != nil {
+        return err
+    }
+
+    usr := vincaSessions.SessionUser(suid)
+    if usr == nil {
+        log.Println("invalid session user")
+        return fmt.Errorf("invalid session")
+    }
+
+    r.WithValue(AuthSessionUser, usr)
+    return nil
 }

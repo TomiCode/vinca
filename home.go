@@ -1,26 +1,30 @@
 package main
 
-import "github.com/google/uuid"
 import "log"
 
 func init() {
     var route *VincaRoute
 
     route = vincaMux.NewRoute("/api/v1/home/container")
+    route.Middleware(auth_middleware)
     route.Handle(api_container_get, "GET")
     route.Handle(api_container_create, "POST")
 
     route = vincaMux.NewRoute("/api/v1/home/categories")
+    route.Middleware(auth_middleware)
     route.Handle(api_categories, "GET")
 
     route = vincaMux.NewRoute("/api/v1/home/category")
+    route.Middleware(auth_middleware)
     route.Handle(api_category_get, "GET")
     route.Handle(api_category_create, "POST")
 
     route = vincaMux.NewRoute("/api/v1/home/stores")
+    route.Middleware(auth_middleware)
     route.Handle(api_stores, "GET")
 
     route = vincaMux.NewRoute("/api/v1/home/store")
+    route.Middleware(auth_middleware)
     route.Handle(api_store_content, "GET")
     route.Handle(api_store_create, "POST")
 }
@@ -55,15 +59,8 @@ type CategoryRequest struct {
 }
 
 func api_container_get(r *Request) interface{} {
-    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
-    if err != nil {
-        log.Println("unable to fetch session for user:", err)
-        return nil
-    }
-
-    usr := vincaSessions.SessionUser(suid)
-    if usr == nil {
-        log.Println("invalid user session, try again")
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
         return nil
     }
 
@@ -80,20 +77,13 @@ func api_container_get(r *Request) interface{} {
 }
 
 func api_container_create(r *Request) interface{} {
-    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
-    if err != nil {
-        log.Println("unable to fetch session for user:", err)
-        return nil
-    }
-
-    usr := vincaSessions.SessionUser(suid)
-    if usr == nil {
-        log.Println("invalid session user")
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
         return nil
     }
 
     var req = ContainerRequest{}
-    if err = r.Decode(&req); err != nil {
+    if err := r.Decode(&req); err != nil {
         return err
     }
 
@@ -103,7 +93,7 @@ func api_container_create(r *Request) interface{} {
         Encrypted: req.Encrypted,
     }
 
-    if err = vincaDatabase.SaveContainer(container, usr); err != nil {
+    if err := vincaDatabase.SaveContainer(container, usr); err != nil {
         log.Println("unable to save container:", err)
         return nil
     }
@@ -111,15 +101,8 @@ func api_container_create(r *Request) interface{} {
 }
 
 func api_categories(r *Request) interface{} {
-    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
-    if err != nil {
-        log.Println("unable to fetch session for user:", err)
-        return nil
-    }
-
-    usr := vincaSessions.SessionUser(suid)
-    if usr == nil {
-        log.Println("invalid session user")
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
         return nil
     }
 
@@ -127,45 +110,31 @@ func api_categories(r *Request) interface{} {
 }
 
 func api_category_get(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
     var param = CategoryRequest{}
     if err := r.Decode(&param); err != nil {
         return err
-    }
-
-    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
-    if err != nil {
-        log.Println("unable to fetch session for user:", err)
-        return nil
-    }
-
-    usr := vincaSessions.SessionUser(suid)
-    if usr == nil {
-        log.Println("invalid session user")
-        return nil
     }
 
     return vincaDatabase.FetchStoresWith(usr, &param)
 }
 
 func api_category_create(r *Request) interface{} {
-    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
-    if err != nil {
-        log.Println("unable to fetch session for user:", err)
-        return nil
-    }
-
-    usr := vincaSessions.SessionUser(suid)
-    if usr == nil {
-        log.Println("invalid session user")
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
         return nil
     }
 
     var category = Category{}
-    if err = r.Decode(&category); err != nil {
+    if err := r.Decode(&category); err != nil {
         return err
     }
 
-    if err = vincaDatabase.SaveCategory(&category, usr); err != nil {
+    if err := vincaDatabase.SaveCategory(&category, usr); err != nil {
         log.Println("unable to save category to database:", err)
         return nil
     }
@@ -176,15 +145,8 @@ func api_category_create(r *Request) interface{} {
 }
 
 func api_stores(r *Request) interface{} {
-    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
-    if err != nil {
-        log.Println("unable to fetch session for user:", err)
-        return nil
-    }
-
-    usr := vincaSessions.SessionUser(suid)
-    if usr == nil {
-        log.Println("invalid session user")
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
         return nil
     }
 
@@ -194,21 +156,14 @@ func api_stores(r *Request) interface{} {
 }
 
 func api_store_content(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
     var param = StoreContentRequest{}
     if err := r.Decode(&param); err != nil {
         return err
-    }
-
-    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
-    if err != nil {
-        log.Println("unable to fetch session for user:", err)
-        return nil
-    }
-
-    usr := vincaSessions.SessionUser(suid)
-    if usr == nil {
-        log.Println("invalid session user")
-        return nil
     }
 
     var localStore = Store{Id: param.StoreId}
@@ -220,25 +175,18 @@ func api_store_content(r *Request) interface{} {
 }
 
 func api_store_create(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
     var param = StoreParam{}
     if err := r.Decode(&param); err != nil {
         return err
     }
 
-    suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
-    if err != nil {
-        log.Println("unable to fetch session for user:", err)
-        return nil
-    }
-
-    usr := vincaSessions.SessionUser(suid)
-    if usr == nil {
-        log.Println("invalid session user")
-        return nil
-    }
-
     var store = Store{StoreParam: param}
-    if err = vincaDatabase.SaveStore(usr, &store); err != nil {
+    if err := vincaDatabase.SaveStore(usr, &store); err != nil {
         log.Println("unable to save store to database.")
         return nil
     }
