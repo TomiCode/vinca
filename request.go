@@ -38,6 +38,32 @@ type RequestStoreParam struct {
     value interface{}
 }
 
+type Response struct {
+    Status string `json:"status"`
+    Data interface{} `json:"data,omitempty"`
+    statusCode int
+}
+
+type HandlerErr struct {
+    err string
+    status int
+}
+
+func (err *HandlerErr) Error() string {
+    return err.err
+}
+
+func (err *HandlerErr) Response() *Response {
+    return &Response{Status: err.err, statusCode: err.status}
+}
+
+func (resp *Response) Write(w http.ResponseWriter) {
+    w.WriteHeader(resp.statusCode)
+    if err := json.NewEncoder(w).Encode(resp); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+    }
+}
+
 func NewRequest(r *http.Request) *Request {
     return &Request{Request: r}
 }
@@ -58,7 +84,6 @@ func (r *Request) Value(key interface{}) interface{} {
 func (r *Request) WithValue(key, value interface{}) {
     r.store = append(r.store, RequestStoreParam{key: key, value: value})
 }
-
 
 func (vm *VincaMux) match(path string) *VincaRoute {
     log.Println("match route", path)
@@ -107,6 +132,10 @@ func (vm *VincaMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     var req = NewRequest(r)
     for _, mid := range route.middleware {
         if err := mid(req); err != nil {
+            if hlerr, valid := err.(*HandlerErr); valid {
+                hlerr.Response().Write(w)
+                return
+            }
             http.Error(w, err.Error(), http.StatusInternalServerError)
             return
         }
@@ -114,6 +143,10 @@ func (vm *VincaMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     for _, mid := range r_method.middleware {
         if err := mid(req); err != nil {
+            if hlerr, valid := err.(*HandlerErr); valid {
+                hlerr.Response().Write(w)
+                return
+            }
             http.Error(w, err.Error(), http.StatusInternalServerError)
             return
         }
