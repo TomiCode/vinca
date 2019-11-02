@@ -6,16 +6,17 @@ import "encoding/json"
 import "github.com/google/uuid"
 
 func init() {
-    http.HandleFunc("/api/v1/home/container/create", CorsFunc(api_container_create))
-    http.HandleFunc("/api/v1/home/container", CorsFunc(api_container_get))
+    vincaMux.NewRoute("/api/v1/home/container").Handle(api_container_get, "GET").Handle(api_container_create, "POST")
+    // http.HandleFunc("/api/v1/home/container/create", CorsFunc(api_container_create))
+    // http.HandleFunc("/api/v1/home/container", CorsFunc(api_container_get))
 
-    http.HandleFunc("/api/v1/home/categories", CorsFunc(api_categories))
-    http.HandleFunc("/api/v1/home/category/create", CorsFunc(api_category_create))
-    http.HandleFunc("/api/v1/home/category", CorsFunc(api_category_get))
+    // http.HandleFunc("/api/v1/home/categories", CorsFunc(api_categories))
+    // http.HandleFunc("/api/v1/home/category/create", CorsFunc(api_category_create))
+    // http.HandleFunc("/api/v1/home/category", CorsFunc(api_category_get))
 
-    http.HandleFunc("/api/v1/home/stores", CorsFunc(api_stores))
-    http.HandleFunc("/api/v1/home/store/content", CorsFunc(api_store_content))
-    http.HandleFunc("/api/v1/home/store/create", CorsFunc(api_store_create))
+    // http.HandleFunc("/api/v1/home/stores", CorsFunc(api_stores))
+    // http.HandleFunc("/api/v1/home/store/content", CorsFunc(api_store_content))
+    // http.HandleFunc("/api/v1/home/store/create", CorsFunc(api_store_create))
 }
 
 type ContainerResponse struct {
@@ -47,49 +48,48 @@ type CategoryRequest struct {
     Global int `json:"global,omitempty"`
 }
 
-func api_container_get(w http.ResponseWriter, r *http.Request) {
+func api_container_get(r *Request) interface{} {
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
-        return
+        return nil
     }
 
     usr := vincaSessions.SessionUser(suid)
     if usr == nil {
         log.Println("invalid user session, try again")
-        return
+        return nil
     }
 
     container := vincaDatabase.FetchContainer(usr)
     if container == nil {
-        json.NewEncoder(w).Encode(ContainerResponse{Valid: false})
-        return
+        return ContainerResponse{Valid: false}
     }
 
-    json.NewEncoder(w).Encode(ContainerResponse{
+    return ContainerResponse{
         Valid: true,
         Container: *container,
         Categories: vincaDatabase.FetchCategories(usr),
-    })
+    }
 }
 
-func api_container_create(w http.ResponseWriter, r *http.Request) {
+func api_container_create(r *Request) interface{} {
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
-        return
+        return nil
     }
 
     usr := vincaSessions.SessionUser(suid)
     if usr == nil {
         log.Println("invalid session user")
-        return
+        return nil
     }
 
     var req = ContainerRequest{}
     if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
         log.Println("unable to parse container request:", err)
-        return
+        return nil
     }
 
     var container = &Container{
@@ -100,9 +100,9 @@ func api_container_create(w http.ResponseWriter, r *http.Request) {
 
     if err = vincaDatabase.SaveContainer(container, usr); err != nil {
         log.Println("unable to save container:", err)
-        return
+        return nil
     }
-    json.NewEncoder(w).Encode(container)
+    return container
 }
 
 func api_categories(w http.ResponseWriter, r *http.Request) {

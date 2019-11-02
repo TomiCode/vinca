@@ -1,8 +1,6 @@
 package main
 
 import "log"
-import "net/http"
-import "encoding/json"
 
 type LoginResponse struct {
     Uuid string `json:"uuid"`
@@ -10,52 +8,46 @@ type LoginResponse struct {
 }
 
 func init() {
-    http.HandleFunc("/api/v1/auth/login", CorsFunc(api_auth_login))
-    http.HandleFunc("/api/v1/auth/register", CorsFunc(api_auth_register))
+    vincaMux.NewRoute("/api/v1/auth/login").Handle(api_auth_login, "POST")
+    vincaMux.NewRoute("/api/v1/auth/register").Handle(api_auth_register, "POST")
 }
 
-func api_auth_login(w http.ResponseWriter, r *http.Request) {
+func api_auth_login(r *Request) interface{} {
     var params = UserParam{}
-    if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-        log.Println("error:", err)
-        return
+    if err := r.Decode(&params); err != nil {
+        return err
     }
 
     usr := vincaDatabase.FetchUser(params.Email)
     if usr == nil {
         log.Println("unable to find requested user")
-        return
+        return nil
     }
 
     if !usr.Authenticate(params.Password) {
         log.Println("nah, invalid password, try again")
-        return
+        return nil
     }
     suid := vincaSessions.CreateSession(usr)
 
-    json.NewEncoder(w).Encode(LoginResponse{
-        Uuid: suid.String(),
-        User: *usr,
-    })
+    return LoginResponse{Uuid: suid.String(), User: *usr}
 }
 
-func api_auth_register(w http.ResponseWriter, r *http.Request) {
+func api_auth_register(r *Request) interface{} {
     var usr = User{}
-    if err := json.NewDecoder(r.Body).Decode(&usr.UserParam); err != nil {
-        log.Println("error:", err)
-        return
+    if err := r.Decode(&usr); err != nil {
+        return err
     }
     log.Printf("%v\n", usr)
 
     if !usr.Valid() {
         log.Println("invalid user data received, try again")
-        return
+        return nil
     }
 
     if !vincaDatabase.UserSave(&usr) {
         log.Println("failure while data save.")
-        return
+        return nil
     }
-
-    json.NewEncoder(w).Encode(usr)
+    return usr
 }

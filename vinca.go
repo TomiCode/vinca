@@ -9,6 +9,8 @@ var vincaDatabase = VincaDatabase{}
 
 var vincaSessions = make(SessionContainer)
 
+var vincaMux = &VincaMux{Cors: true}
+
 func main() {
     if vincaConfig.LoadConfig("config.json") != nil {
         return
@@ -18,9 +20,9 @@ func main() {
         log.Println("unable to open database connection")
         return
     }
-    log.Println("Starting vinca server..")
 
-    if err := http.ListenAndServe(":3000", nil); err != nil {
+    log.Println("Starting vinca server..")
+    if err := http.ListenAndServe(":3000", vincaMux); err != nil {
         log.Fatal(err)
     }
 }

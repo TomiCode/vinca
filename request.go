@@ -11,8 +11,8 @@ type RouteHandler func(*Request) interface{}
 type MiddlewareHandler func(*Request) error
 
 type VincaMux struct {
+    Cors bool
     mu sync.RWMutex
-    cors bool
     routes map[string]*VincaRoute
 }
 
@@ -71,7 +71,7 @@ func (vm *VincaMux) match(path string) *VincaRoute {
     }
 
     for p, r := range vm.routes {
-        if strings.HasPrefix(p, path) {
+        if strings.HasPrefix(path, p) {
             return r
         }
     }
@@ -85,7 +85,8 @@ func (vm *VincaMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    if vm.cors {
+    if vm.Cors {
+        w.Header().Set("Access-Control-Allow-Origin", "*")
         if r.Method == "OPTIONS" {
             header := w.Header()
             header.Add("Vary", "Origin")
@@ -94,8 +95,6 @@ func (vm *VincaMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
             header.Add("Access-Control-Allow-Headers", "Content-Type, Origin, Accept, Vinca-Authentication")
             header.Add("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
             return
-        } else {
-            w.Header().Set("Access-Control-Allow-Origin", "*")
         }
     }
 
