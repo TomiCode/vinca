@@ -1,22 +1,28 @@
 package main
 
-import "log"
-import "net/http"
-import "encoding/json"
 import "github.com/google/uuid"
+import "log"
 
 func init() {
-    vincaMux.NewRoute("/api/v1/home/container").Handle(api_container_get, "GET").Handle(api_container_create, "POST")
-    // http.HandleFunc("/api/v1/home/container/create", CorsFunc(api_container_create))
-    // http.HandleFunc("/api/v1/home/container", CorsFunc(api_container_get))
+    var route *VincaRoute
 
-    // http.HandleFunc("/api/v1/home/categories", CorsFunc(api_categories))
-    // http.HandleFunc("/api/v1/home/category/create", CorsFunc(api_category_create))
-    // http.HandleFunc("/api/v1/home/category", CorsFunc(api_category_get))
+    route = vincaMux.NewRoute("/api/v1/home/container")
+    route.Handle(api_container_get, "GET")
+    route.Handle(api_container_create, "POST")
 
-    // http.HandleFunc("/api/v1/home/stores", CorsFunc(api_stores))
-    // http.HandleFunc("/api/v1/home/store/content", CorsFunc(api_store_content))
-    // http.HandleFunc("/api/v1/home/store/create", CorsFunc(api_store_create))
+    route = vincaMux.NewRoute("/api/v1/home/categories")
+    route.Handle(api_categories, "GET")
+
+    route = vincaMux.NewRoute("/api/v1/home/category")
+    route.Handle(api_category_get, "GET")
+    route.Handle(api_category_create, "POST")
+
+    route = vincaMux.NewRoute("/api/v1/home/stores")
+    route.Handle(api_stores, "GET")
+
+    route = vincaMux.NewRoute("/api/v1/home/store")
+    route.Handle(api_store_content, "GET")
+    route.Handle(api_store_create, "POST")
 }
 
 type ContainerResponse struct {
@@ -87,9 +93,8 @@ func api_container_create(r *Request) interface{} {
     }
 
     var req = ContainerRequest{}
-    if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-        log.Println("unable to parse container request:", err)
-        return nil
+    if err = r.Decode(&req); err != nil {
+        return err
     }
 
     var container = &Container{
@@ -105,143 +110,138 @@ func api_container_create(r *Request) interface{} {
     return container
 }
 
-func api_categories(w http.ResponseWriter, r *http.Request) {
+func api_categories(r *Request) interface{} {
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
-        return
+        return nil
     }
 
     usr := vincaSessions.SessionUser(suid)
     if usr == nil {
         log.Println("invalid session user")
-        return
+        return nil
     }
 
-    json.NewEncoder(w).Encode(vincaDatabase.FetchCategories(usr))
+    return vincaDatabase.FetchCategories(usr)
 }
 
-func api_category_get(w http.ResponseWriter, r *http.Request) {
+func api_category_get(r *Request) interface{} {
     var param = CategoryRequest{}
-    if err := json.NewDecoder(r.Body).Decode(&param); err != nil {
-        log.Println("unable to fetch category id")
-        return
+    if err := r.Decode(&param); err != nil {
+        return err
     }
 
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
-        return
+        return nil
     }
 
     usr := vincaSessions.SessionUser(suid)
     if usr == nil {
         log.Println("invalid session user")
-        return
+        return nil
     }
 
-    json.NewEncoder(w).Encode(vincaDatabase.FetchStoresWith(usr, &param))
+    return vincaDatabase.FetchStoresWith(usr, &param)
 }
 
-func api_category_create(w http.ResponseWriter, r *http.Request) {
+func api_category_create(r *Request) interface{} {
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
-        return
+        return nil
     }
 
     usr := vincaSessions.SessionUser(suid)
     if usr == nil {
         log.Println("invalid session user")
-        return
+        return nil
     }
 
     var category = Category{}
-    if err = json.NewDecoder(r.Body).Decode(&category.CategoryParams); err != nil {
-        log.Println("unable to decode params:", err)
-        return
+    if err = r.Decode(&category); err != nil {
+        return err
     }
 
     if err = vincaDatabase.SaveCategory(&category, usr); err != nil {
         log.Println("unable to save category to database:", err)
-        return
+        return nil
     }
 
-    json.NewEncoder(w).Encode(CategoryResponse{
-        Created: &category,
+    return CategoryResponse{Created: &category,
         Categories: vincaDatabase.FetchCategories(usr),
-    })
+    }
 }
 
-func api_stores(w http.ResponseWriter, r *http.Request) {
+func api_stores(r *Request) interface{} {
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
-        return
+        return nil
     }
 
     usr := vincaSessions.SessionUser(suid)
     if usr == nil {
         log.Println("invalid session user")
-        return
+        return nil
     }
 
-    json.NewEncoder(w).Encode(StoreResponse{
+    return StoreResponse{
         Stores: vincaDatabase.FetchStores(usr),
-    })
+    }
 }
 
-func api_store_content(w http.ResponseWriter, r *http.Request) {
+func api_store_content(r *Request) interface{} {
     var param = StoreContentRequest{}
-    if err := json.NewDecoder(r.Body).Decode(&param); err != nil {
-        log.Println("unable to fetch store_id:", err)
-        return
+    if err := r.Decode(&param); err != nil {
+        return err
     }
 
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
-        return
+        return nil
     }
 
     usr := vincaSessions.SessionUser(suid)
     if usr == nil {
         log.Println("invalid session user")
-        return
+        return nil
     }
 
     var localStore = Store{Id: param.StoreId}
     if err := vincaDatabase.FetchStoreContent(usr, &localStore); err != nil {
         log.Println("unable to fetch store:", err)
-        return
+        return nil
     }
-    json.NewEncoder(w).Encode(localStore)
+    return localStore
 }
 
-func api_store_create(w http.ResponseWriter, r *http.Request) {
+func api_store_create(r *Request) interface{} {
     var param = StoreParam{}
-    if err := json.NewDecoder(r.Body).Decode(&param); err != nil {
-        log.Println("unable to fetch store_id:", err)
-        return
+    if err := r.Decode(&param); err != nil {
+        return err
     }
 
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         log.Println("unable to fetch session for user:", err)
-        return
+        return nil
     }
 
     usr := vincaSessions.SessionUser(suid)
     if usr == nil {
         log.Println("invalid session user")
-        return
+        return nil
     }
 
     var store = Store{StoreParam: param}
     if err = vincaDatabase.SaveStore(usr, &store); err != nil {
         log.Println("unable to save store to database.")
-        return
+        return nil
     }
 
-    json.NewEncoder(w).Encode(store)
+    return store
 }
