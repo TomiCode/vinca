@@ -6,6 +6,8 @@ import "strings"
 import "sync"
 import "log"
 
+var ErrInvalidParams = NewHandlerErr("sys_invalid_params", http.StatusBadRequest)
+
 type RouteHandler func(*Request) interface{}
 
 type MiddlewareHandler func(*Request) error
@@ -40,13 +42,17 @@ type RequestStoreParam struct {
 
 type Response struct {
     Status string `json:"status"`
-    Data interface{} `json:"data,omitempty"`
+    Content interface{} `json:"content,omitempty"`
     statusCode int
 }
 
 type HandlerErr struct {
     err string
     status int
+}
+
+func NewHandlerErr(err string, status int) *HandlerErr {
+    return &HandlerErr{err: err, status: status}
 }
 
 func (err *HandlerErr) Error() string {
@@ -69,7 +75,11 @@ func NewRequest(r *http.Request) *Request {
 }
 
 func (r *Request) Decode(v interface{}) error {
-    return json.NewDecoder(r.Body).Decode(v)
+    if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+        log.Println("unable to decode:", err)
+        return ErrInvalidParams
+    }
+    return nil
 }
 
 func (r *Request) Value(key interface{}) interface{} {
@@ -153,6 +163,11 @@ func (vm *VincaMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     }
 
     resp := r_method.handler(req)
+    if err, valid := resp.(*HandlerErr); valid {
+        log.Println(r.URL.Path, err.Error())
+        err.Response().Write(w)
+        return
+    }
     if err, valid := resp.(error); valid {
         http.Error(w, err.Error(), http.StatusBadRequest)
         return

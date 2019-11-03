@@ -1,10 +1,15 @@
 package main
 
 import "github.com/google/uuid"
+import "net/http"
 import "fmt"
 import "log"
 
 const AuthSessionUser int = 0x1001
+
+var ErrInvalidLogin = NewHandlerErr("user_login_invalid", http.StatusUnauthorized)
+var ErrInvalidData = NewHandlerErr("user_data_invalid", http.StatusBadRequest)
+var ErrInvalidSession = NewHandlerErr("user_session_invalid", http.StatusUnauthorized)
 
 type LoginResponse struct {
     Uuid string `json:"uuid"`
@@ -25,12 +30,12 @@ func api_auth_login(r *Request) interface{} {
     usr := vincaDatabase.FetchUser(params.Email)
     if usr == nil {
         log.Println("unable to find requested user")
-        return nil
+        return ErrInvalidLogin
     }
 
     if !usr.Authenticate(params.Password) {
         log.Println("nah, invalid password, try again")
-        return nil
+        return ErrInvalidLogin
     }
     suid := vincaSessions.CreateSession(usr)
 
@@ -46,30 +51,25 @@ func api_auth_register(r *Request) interface{} {
 
     if !usr.Valid() {
         log.Println("invalid user data received, try again")
-        return nil
+        return ErrInvalidData
     }
 
     if !vincaDatabase.UserSave(&usr) {
-        log.Println("failure while data save.")
-        return nil
+        return fmt.Errorf("database failure")
     }
     return usr
 }
 
 func auth_middleware(r *Request) error {
     log.Println("auth_middleware")
-
     suid, err := uuid.Parse(r.Header.Get("Vinca-Authentication"))
     if err != nil {
         return err
     }
 
-    usr := vincaSessions.SessionUser(suid)
-    if usr == nil {
-        log.Println("invalid session user")
-        return fmt.Errorf("invalid session")
+    if usr := vincaSessions.SessionUser(suid); usr != nil {
+        r.WithValue(AuthSessionUser, usr)
+        return nil
     }
-
-    r.WithValue(AuthSessionUser, usr)
-    return nil
+    return ErrInvalidSession
 }
