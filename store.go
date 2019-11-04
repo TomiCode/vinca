@@ -1,14 +1,13 @@
 package main
 
 import "log"
-import "time"
 import "database/sql"
 
 type Store struct {
     Id int `json:"id"`
-    Created time.Time `json:"created"`
-    LastUsed time.Time `json:"last_used"`
-    Modified time.Time `json:"modified"`
+    Created Datetime `json:"created"`
+    LastUsed Datetime `json:"last_used"`
+    Modified Datetime `json:"modified"`
     StoreParam
 }
 
