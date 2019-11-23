@@ -6,6 +6,9 @@ import "strings"
 import "sync"
 import "log"
 
+const ErrSuccess = "success"
+const ErrSystem = "error"
+
 var ErrInvalidParams = NewHandlerErr("sys_invalid_params", http.StatusBadRequest)
 
 type RouteHandler func(*Request) interface{}
@@ -146,7 +149,8 @@ func (vm *VincaMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
                 hlerr.Response().Write(w)
                 return
             }
-            http.Error(w, err.Error(), http.StatusInternalServerError)
+            w.WriteHeader(http.StatusInternalServerError)
+            json.NewEncoder(w).Encode(Response{Status: ErrSystem, Content: err.Error()})
             return
         }
     }
@@ -157,7 +161,8 @@ func (vm *VincaMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
                 hlerr.Response().Write(w)
                 return
             }
-            http.Error(w, err.Error(), http.StatusInternalServerError)
+            w.WriteHeader(http.StatusInternalServerError)
+            json.NewEncoder(w).Encode(Response{Status: ErrSystem, Content: err.Error()})
             return
         }
     }
@@ -169,10 +174,12 @@ func (vm *VincaMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
     }
     if err, valid := resp.(error); valid {
-        http.Error(w, err.Error(), http.StatusBadRequest)
+        w.WriteHeader(http.StatusBadRequest)
+        json.NewEncoder(w).Encode(Response{Status: ErrSystem, Content: err.Error()})
         return
     }
-    json.NewEncoder(w).Encode(resp)
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(Response{Status: "success", Content: resp})
 }
 
 func (vm *VincaMux) NewRoute(path string) *VincaRoute {

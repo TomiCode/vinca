@@ -12,16 +12,17 @@ type Store struct {
 }
 
 type StoreParam struct {
+    Name string `json:"name"`
+    Description string `json:"description"`
     Container int `json:"container"`
     Category int `json:"category"`
-    Name string `json:"name"`
-    Icon string `json:"icon"`
-    Color int `json:"color"`
     Content []byte `json:"content"`
+    Icon int `json:"icon"`
+    Color int `json:"color"`
 }
 
-func (v *VincaDatabase) FetchStores(usr *User) []Store {
-    rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, icon, color from stores where user_id = ?", usr.Id)
+func (v *VincaDatabase) FetchStores(usr *User, sr StoresRequest) []Store {
+    rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, icon, color from stores where user_id = ? and category_id = ?", usr.Id, sr.Category)
     if err != nil {
         log.Println("unable to fetch stores:", err)
         return nil
@@ -37,7 +38,6 @@ func (v *VincaDatabase) FetchStores(usr *User) []Store {
             log.Println("unable to scan single store:", err)
             continue
         }
-
         stores = append(stores, st)
     }
 

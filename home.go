@@ -21,7 +21,7 @@ func init() {
 
     route = vincaMux.NewRoute("/api/v1/home/stores")
     route.Middleware(auth_middleware)
-    route.Handle(api_stores, "GET")
+    route.Handle(api_stores, "POST")
 
     route = vincaMux.NewRoute("/api/v1/home/store")
     route.Middleware(auth_middleware)
@@ -56,6 +56,10 @@ type CategoryResponse struct {
 type CategoryRequest struct {
     Category int `json:"category"`
     Global int `json:"global,omitempty"`
+}
+
+type StoresRequest struct {
+    Category int `json:"category"`
 }
 
 func api_container_get(r *Request) interface{} {
@@ -150,8 +154,13 @@ func api_stores(r *Request) interface{} {
         return nil
     }
 
+    var params = StoresRequest{}
+    if err := r.Decode(&params); err != nil {
+        return err
+    }
+
     return StoreResponse{
-        Stores: vincaDatabase.FetchStores(usr),
+        Stores: vincaDatabase.FetchStores(usr, params),
     }
 }
 

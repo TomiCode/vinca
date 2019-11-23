@@ -19,6 +19,7 @@ type LoginResponse struct {
 func init() {
     vincaMux.NewRoute("/api/v1/auth/login").Handle(api_auth_login, "POST")
     vincaMux.NewRoute("/api/v1/auth/register").Handle(api_auth_register, "POST")
+    vincaMux.NewRoute("/api/v1/auth/session").Middleware(auth_middleware).Handle(api_auth_session, "GET")
 }
 
 func api_auth_login(r *Request) interface{} {
@@ -58,6 +59,13 @@ func api_auth_register(r *Request) interface{} {
         return fmt.Errorf("database failure")
     }
     return usr
+}
+
+func api_auth_session(r *Request) interface{} {
+    if usr, valid := r.Value(AuthSessionUser).(*User); valid {
+        return usr
+    }
+    return ErrInvalidSession
 }
 
 func auth_middleware(r *Request) error {
