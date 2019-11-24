@@ -30,7 +30,6 @@ func init() {
 }
 
 type ContainerResponse struct {
-    Valid bool `json:"valid"`
     Container
     Categories []*Category `json:"categories"`
 }
@@ -68,14 +67,8 @@ func api_container_get(r *Request) interface{} {
         return nil
     }
 
-    container := vincaDatabase.FetchContainer(usr)
-    if container == nil {
-        return ContainerResponse{Valid: false}
-    }
-
     return ContainerResponse{
-        Valid: true,
-        Container: *container,
+        Container: vincaDatabase.FetchContainer(usr),
         Categories: vincaDatabase.FetchCategories(usr),
     }
 }
@@ -101,7 +94,10 @@ func api_container_create(r *Request) interface{} {
         log.Println("unable to save container:", err)
         return nil
     }
-    return container
+    return ContainerResponse{
+        Container: *container,
+        Categories: vincaDatabase.FetchCategories(usr),
+    }
 }
 
 func api_categories(r *Request) interface{} {

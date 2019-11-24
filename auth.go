@@ -19,6 +19,7 @@ type LoginResponse struct {
 func init() {
     vincaMux.NewRoute("/api/v1/auth/login").Handle(api_auth_login, "POST")
     vincaMux.NewRoute("/api/v1/auth/register").Handle(api_auth_register, "POST")
+    vincaMux.NewRoute("/api/v1/auth/reset").Handle(api_auth_reset, "POST")
     vincaMux.NewRoute("/api/v1/auth/session").Middleware(auth_middleware).Handle(api_auth_session, "GET")
 }
 
@@ -45,7 +46,7 @@ func api_auth_login(r *Request) interface{} {
 
 func api_auth_register(r *Request) interface{} {
     var usr = User{}
-    if err := r.Decode(&usr); err != nil {
+    if err := r.Decode(&usr.UserParam); err != nil {
         return err
     }
     log.Printf("%v\n", usr)
@@ -58,6 +59,16 @@ func api_auth_register(r *Request) interface{} {
     if !vincaDatabase.UserSave(&usr) {
         return fmt.Errorf("database failure")
     }
+    return usr
+}
+
+func api_auth_reset(r *Request) interface{} {
+    var usr = User{}
+    if err := r.Decode(&usr.UserParam); err != nil {
+        return err
+    }
+    log.Println("Restore password:", usr)
+
     return usr
 }
 
