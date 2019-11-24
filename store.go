@@ -22,7 +22,7 @@ type StoreParam struct {
 }
 
 func (v *VincaDatabase) FetchStores(usr *User, sr StoresRequest) []Store {
-    rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, icon, color from stores where user_id = ? and category_id = ?", usr.Id, sr.Category)
+    rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, description, icon, color from stores where user_id = ? and category_id = ?", usr.Id, sr.Category)
     if err != nil {
         log.Println("unable to fetch stores:", err)
         return nil
@@ -33,7 +33,7 @@ func (v *VincaDatabase) FetchStores(usr *User, sr StoresRequest) []Store {
         var st = Store{}
         err = rows.Scan(&st.Id, &st.Container, &st.Category,
                         &st.Created, &st.LastUsed, &st.Modified,
-                        &st.Name, &st.Icon, &st.Color)
+                        &st.Name, &st.Description, &st.Icon, &st.Color)
         if err != nil {
             log.Println("unable to scan single store:", err)
             continue
@@ -94,8 +94,8 @@ func (v *VincaDatabase) FetchStoreContent(usr *User, st *Store) error {
 }
 
 func (v *VincaDatabase) SaveStore(usr *User, st *Store) error {
-    res, err := v.db.Exec("insert into stores(user_id, container_id, category_id, name, icon, color, content) values(?,?,?,?,?,?,?)",
-            usr.Id, st.Container, st.Category, st.Name, st.Icon, st.Color, st.Content)
+    res, err := v.db.Exec("insert into stores(user_id, container_id, category_id, name, description, icon, color, content) values(?,?,?,?,?,?,?,?)",
+            usr.Id, st.Container, st.Category, st.Name, st.Description, st.Icon, st.Color, st.Content)
 
     if err != nil {
         log.Println("unable to insert store:", err)
