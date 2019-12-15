@@ -131,7 +131,7 @@ func (vm *VincaMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
             header.Add("Vary", "Access-Control-Request-Method")
             header.Add("Vary", "Access-Control-Request-Headers")
             header.Add("Access-Control-Allow-Headers", "Content-Type, Origin, Accept, Vinca-Authentication")
-            header.Add("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+            header.Add("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
             return
         }
     }

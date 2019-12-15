@@ -23,10 +23,14 @@ func init() {
     route.Middleware(auth_middleware)
     route.Handle(api_stores, "POST")
 
+    route = vincaMux.NewRoute("/api/v1/home/store/create")
+    route.Middleware(auth_middleware)
+    route.Handle(api_store_create, "POST")
+
     route = vincaMux.NewRoute("/api/v1/home/store")
     route.Middleware(auth_middleware)
-    route.Handle(api_store_content, "GET")
-    route.Handle(api_store_create, "POST")
+    route.Handle(api_store_content, "POST")
+    route.Handle(api_store_update, "PATCH")
 }
 
 type ContainerResponse struct {
@@ -185,16 +189,42 @@ func api_store_create(r *Request) interface{} {
         return nil
     }
 
-    var param = StoreParam{}
-    if err := r.Decode(&param); err != nil {
+    var store = Store{}
+    if err := r.Decode(&store.StoreParam); err != nil {
         return err
     }
 
-    var store = Store{StoreParam: param}
     if err := vincaDatabase.SaveStore(usr, &store); err != nil {
         log.Println("unable to save store to database.")
         return nil
     }
+    return store
+}
 
+func api_store_update(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
+    var store = Store{}
+    if err := r.Decode(&store); err != nil {
+        return err
+    }
+
+    var dbStore = Store{Id: store.Id}
+    if err := vincaDatabase.FetchStoreContent(usr, &dbStore); err != nil {
+        log.Println("unable to fetch store state:", err)
+        return nil
+    }
+
+    if store.Content == nil {
+        store.Content = dbStore.Content
+    }
+
+    if err := vincaDatabase.UpdateStore(&store); err != nil {
+        log.Println("unable to update store:", err)
+        return nil
+    }
     return store
 }
