@@ -18,6 +18,11 @@ func init() {
     route.Middleware(auth_middleware)
     route.Handle(api_category_get, "GET")
     route.Handle(api_category_create, "POST")
+    route.Handle(api_category_update, "PATCH")
+
+    route = vincaMux.NewRoute("/api/v1/home/category/delete")
+    route.Middleware(auth_middleware)
+    route.Handle(api_category_remove, "POST")
 
     route = vincaMux.NewRoute("/api/v1/home/stores")
     route.Middleware(auth_middleware)
@@ -31,6 +36,10 @@ func init() {
     route.Middleware(auth_middleware)
     route.Handle(api_store_content, "POST")
     route.Handle(api_store_update, "PATCH")
+
+    route = vincaMux.NewRoute("/api/v1/home/store/delete")
+    route.Middleware(auth_middleware)
+    route.Handle(api_store_remove, "POST")
 }
 
 type ContainerResponse struct {
@@ -54,6 +63,11 @@ type StoreResponse struct {
 type CategoryResponse struct {
     Created *Category `json:"created"`
     Categories []*Category `json:"categories"`
+}
+
+type CategoryDestroyResponse struct {
+    Removed Category `json:"removed"`
+    Migrated Category `json:"migrated"`
 }
 
 type CategoryRequest struct {
@@ -134,7 +148,7 @@ func api_category_create(r *Request) interface{} {
     }
 
     var category = Category{}
-    if err := r.Decode(&category); err != nil {
+    if err := r.Decode(&category.CategoryParams); err != nil {
         return err
     }
 
@@ -145,6 +159,54 @@ func api_category_create(r *Request) interface{} {
 
     return CategoryResponse{Created: &category,
         Categories: vincaDatabase.FetchCategories(usr),
+    }
+}
+
+func api_category_update(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
+    var category = Category{}
+    if err := r.Decode(&category); err != nil {
+        return err
+    }
+
+    if err := vincaDatabase.UpdateCategory(&category, usr); err != nil {
+        return err
+    }
+    return category
+}
+
+func api_category_remove(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
+    var req = CategoryDestroyRequest{}
+    if err := r.Decode(&req); err != nil {
+        return err
+    }
+
+    var category = Category{Id: req.Id}
+    if err := vincaDatabase.FetchCategory(&category, usr); err != nil {
+        return err
+    }
+
+    var migrate = Category{Id: req.Migrate}
+    if err := vincaDatabase.MigrateCategory(&category, &migrate, usr); err != nil {
+        return err
+    }
+
+    if err := vincaDatabase.DestroyCategory(&category, usr); err != nil {
+        return err
+    }
+
+    return CategoryDestroyResponse{
+        Removed: category,
+        Migrated: migrate,
     }
 }
 
@@ -222,9 +284,32 @@ func api_store_update(r *Request) interface{} {
         store.Content = dbStore.Content
     }
 
-    if err := vincaDatabase.UpdateStore(&store); err != nil {
+    if err := vincaDatabase.UpdateStore(usr, &store); err != nil {
         log.Println("unable to update store:", err)
         return nil
+    }
+    return store
+}
+
+func api_store_remove(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
+    var store = Store{}
+    if err := r.Decode(&store); err != nil {
+        return err
+    }
+
+    if err := vincaDatabase.FetchStoreContent(usr, &store); err != nil {
+        log.Println("unable to fetch removed store:", err)
+        return err
+    }
+
+    if err := vincaDatabase.DestroyStore(usr, &store); err != nil {
+        log.Println("unable to remove store:", err)
+        return err
     }
     return store
 }

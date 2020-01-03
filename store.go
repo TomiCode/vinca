@@ -115,9 +115,9 @@ func (v *VincaDatabase) SaveStore(usr *User, st *Store) error {
     return nil
 }
 
-func (v *VincaDatabase) UpdateStore(st *Store) error {
-    res, err := v.db.Exec("update stores set category_id = ?, name = ?, description = ?, icon = ?, color = ?, content = ? where id = ?",
-            st.Category, st.Name, st.Description, st.Icon, st.Color, st.Content, st.Id)
+func (v *VincaDatabase) UpdateStore(usr *User, st *Store) error {
+    res, err := v.db.Exec("update stores set category_id = ?, name = ?, description = ?, icon = ?, color = ?, content = ? where id = ? and user_id = ?",
+            st.Category, st.Name, st.Description, st.Icon, st.Color, st.Content, st.Id, usr.Id)
 
     if err != nil {
         log.Println("unable to update store:", err)
@@ -132,6 +132,24 @@ func (v *VincaDatabase) UpdateStore(st *Store) error {
 
     if rows != 1 {
         log.Println("invalid rows updated!! Count:", rows)
+    }
+    return nil
+}
+
+func (v *VincaDatabase) DestroyStore(usr *User, st *Store) error {
+    res, err := v.db.Exec("delete from stores where id = ? and user_id = ? limit 1", st.Id, usr.Id)
+    if err != nil {
+        log.Println("unable to remove store:", err)
+        return err
+    }
+
+    rows, err := res.RowsAffected()
+    if err != nil {
+        log.Println("unable to fetch rows affected:", err)
+        return err
+    }
+    if rows != 1 {
+        log.Println("invalid number of deleted rows reported:", rows)
     }
     return nil
 }
