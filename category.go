@@ -19,7 +19,7 @@ type Category struct {
 }
 
 func (v *VincaDatabase) FetchCategories(usr *User) []*Category {
-    rows, err := v.db.Query("select id, name, description, icon from categories where user_id = ?", usr.Id)
+    rows, err := v.db.Query("select id, name, description, icon from categories where user_id = ? order by name asc", usr.Id)
     if err != nil {
         log.Println("unable to fetch categories for user", usr.Username)
         return nil

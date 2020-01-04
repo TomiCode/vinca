@@ -10,6 +10,8 @@ const ErrSuccess = "success"
 const ErrSystem = "error"
 
 var ErrInvalidParams = NewHandlerErr("sys_invalid_params", http.StatusBadRequest)
+var ErrUsedEmail = NewHandlerErr("sys_email_exists", http.StatusBadRequest)
+var ErrInvalidPassword = NewHandlerErr("usr_invalid_pass", http.StatusUnauthorized)
 
 type RouteHandler func(*Request) interface{}
 

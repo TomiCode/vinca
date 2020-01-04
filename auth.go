@@ -2,7 +2,6 @@ package main
 
 import "github.com/google/uuid"
 import "net/http"
-import "fmt"
 import "log"
 
 const AuthSessionUser int = 0x1001
@@ -56,8 +55,8 @@ func api_auth_register(r *Request) interface{} {
         return ErrInvalidData
     }
 
-    if !vincaDatabase.UserSave(&usr) {
-        return fmt.Errorf("database failure")
+    if err := vincaDatabase.UserSave(&usr); err != nil {
+        return err
     }
     return usr
 }

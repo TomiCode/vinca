@@ -22,7 +22,7 @@ type StoreParam struct {
 }
 
 func (v *VincaDatabase) FetchStores(usr *User, sr StoresRequest) []Store {
-    rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, description, icon, color from stores where user_id = ? and category_id = ?", usr.Id, sr.Category)
+    rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, description, icon, color from stores where user_id = ? and category_id = ? order by name asc", usr.Id, sr.Category)
     if err != nil {
         log.Println("unable to fetch stores:", err)
         return nil
@@ -82,6 +82,41 @@ func (v *VincaDatabase) FetchStoresWith(usr *User, params *CategoryRequest) []St
     return stores
 }
 
+func (v *VincaDatabase) FetchStoreHistory(usr *User) []Store {
+    if !usr.LastUsed {
+        return []Store{ }
+    }
+
+    rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, description, icon, color from stores where user_id = ? order by last_used desc limit 8", usr.Id)
+    if err != nil {
+        log.Println("unable to fetch stores:", err)
+        return nil
+    }
+
+    var stores []Store
+    for rows.Next() {
+        var st = Store{}
+        err = rows.Scan(&st.Id, &st.Container, &st.Category,
+                        &st.Created, &st.LastUsed, &st.Modified,
+                        &st.Name, &st.Description, &st.Icon, &st.Color)
+        if err != nil {
+            log.Println("unable to scan single store:", err)
+            continue
+        }
+        stores = append(stores, st)
+    }
+    return stores
+}
+
+func (v *VincaDatabase) UpdateStoreUsage(usr *User, st *Store) {
+    _, err := v.db.Exec("update stores set last_used = current_timestamp where id = ? and user_id = ?",
+            st.Id, usr.Id)
+
+    if err != nil {
+        log.Println("error occurred while last_used update:", err)
+    }
+}
+
 func (v *VincaDatabase) FetchStoreContent(usr *User, st *Store) error {
     row := v.db.QueryRow("select category_id, created, last_used, modified, name, description, icon, color, content from stores where id = ? and user_id = ?", st.Id, usr.Id)
     if err := row.Scan(&st.Category, &st.Created, &st.LastUsed,
@@ -90,6 +125,10 @@ func (v *VincaDatabase) FetchStoreContent(usr *User, st *Store) error {
 
         log.Println("unable to fetch store content:", err)
         return err
+    }
+
+    if usr.LastUsed {
+        go v.UpdateStoreUsage(usr, st)
     }
 
     log.Println("fetch store content for", usr.Username)

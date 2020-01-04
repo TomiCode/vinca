@@ -40,6 +40,14 @@ func init() {
     route = vincaMux.NewRoute("/api/v1/home/store/delete")
     route.Middleware(auth_middleware)
     route.Handle(api_store_remove, "POST")
+
+    route = vincaMux.NewRoute("/api/v1/home")
+    route.Middleware(auth_middleware)
+    route.Handle(api_home, "GET")
+
+    route = vincaMux.NewRoute("/api/v1/home/preferences")
+    route.Middleware(auth_middleware)
+    route.Handle(api_user_update, "POST")
 }
 
 type ContainerResponse struct {
@@ -77,6 +85,16 @@ type CategoryRequest struct {
 
 type StoresRequest struct {
     Category int `json:"category"`
+}
+
+type HomeResponse struct {
+    Unassigned []Store `json:"unassigned"`
+    History []Store `json:"history"`
+}
+
+type UserUpdateRequest struct {
+    Confirmation string `json:"confirmation"`
+    UserParam
 }
 
 func api_container_get(r *Request) interface{} {
@@ -312,4 +330,37 @@ func api_store_remove(r *Request) interface{} {
         return err
     }
     return store
+}
+
+func api_home(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
+    return HomeResponse{
+        Unassigned: vincaDatabase.FetchStores(usr, StoresRequest{Category: 0}),
+        History: vincaDatabase.FetchStoreHistory(usr),
+    }
+}
+
+func api_user_update(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
+    var params = UserUpdateRequest{}
+    if err := r.Decode(&params); err != nil {
+        return err
+    }
+
+    if !usr.Authenticate(params.Confirmation) {
+        return ErrInvalidPassword
+    }
+
+    if err := vincaDatabase.UpdateUser(usr, params.UserParam); err != nil {
+        return err
+    }
+    return usr
 }
