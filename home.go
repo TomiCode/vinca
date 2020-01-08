@@ -16,9 +16,9 @@ func init() {
 
     route = vincaMux.NewRoute("/api/v1/home/category")
     route.Middleware(auth_middleware)
-    route.Handle(api_category_get, "GET")
     route.Handle(api_category_create, "POST")
     route.Handle(api_category_update, "PATCH")
+    route.Handle(api_category_get, "GET")
 
     route = vincaMux.NewRoute("/api/v1/home/category/delete")
     route.Middleware(auth_middleware)
@@ -41,13 +41,17 @@ func init() {
     route.Middleware(auth_middleware)
     route.Handle(api_store_remove, "POST")
 
-    route = vincaMux.NewRoute("/api/v1/home")
+    route = vincaMux.NewRoute("/api/v1/home/store/search")
     route.Middleware(auth_middleware)
-    route.Handle(api_home, "GET")
+    route.Handle(api_store_search, "POST")
 
     route = vincaMux.NewRoute("/api/v1/home/preferences")
     route.Middleware(auth_middleware)
     route.Handle(api_user_update, "POST")
+
+    route = vincaMux.NewRoute("/api/v1/home")
+    route.Middleware(auth_middleware)
+    route.Handle(api_home, "GET")
 }
 
 type ContainerResponse struct {
@@ -363,4 +367,20 @@ func api_user_update(r *Request) interface{} {
         return err
     }
     return usr
+}
+
+func api_store_search(r *Request) interface{} {
+    usr, ok := r.Value(AuthSessionUser).(*User)
+    if !ok {
+        return nil
+    }
+
+    var params = StoreQuery{}
+    if err := r.Decode(&params); err != nil {
+        return err
+    }
+
+    return StoreResponse{
+        Stores: vincaDatabase.FetchStoreQuery(usr, params),
+    }
 }

@@ -51,7 +51,16 @@ func (usr *User) SetPassword(password string) error {
 }
 
 func (v *VincaDatabase) UserSave(usr *User) error {
+    var uid int64
     if err := usr.SetPassword(usr.Password); err != nil {
+        return err
+    }
+
+    if err := v.db.QueryRow("select id from users where email = ?", usr.Email).Scan(&uid); err != sql.ErrNoRows {
+        if err == nil {
+            return ErrUsedEmail
+        }
+        log.Println("error while email check:", err)
         return err
     }
 
@@ -62,7 +71,7 @@ func (v *VincaDatabase) UserSave(usr *User) error {
         return err
     }
 
-    uid, err := res.LastInsertId()
+    uid, err = res.LastInsertId()
     if err != nil {
         log.Println("user save id fetch err:", err)
     } else {

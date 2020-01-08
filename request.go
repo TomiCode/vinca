@@ -106,12 +106,16 @@ func (vm *VincaMux) match(path string) *VincaRoute {
     vm.mu.RLock()
     defer vm.mu.RUnlock()
 
+    log.Println("matching static paths for", path)
     if r, ok := vm.routes[path]; ok {
+        log.Println("found static route", r)
         return r
     }
 
+    log.Println("mathing prefix for", path)
     for p, r := range vm.routes {
         if strings.HasPrefix(path, p) {
+            log.Println("match found", p)
             return r
         }
     }

@@ -21,6 +21,10 @@ type StoreParam struct {
     Color int `json:"color"`
 }
 
+type StoreQuery struct {
+    Query string `json:"query"`
+}
+
 func (v *VincaDatabase) FetchStores(usr *User, sr StoresRequest) []Store {
     rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, description, icon, color from stores where user_id = ? and category_id = ? order by name asc", usr.Id, sr.Category)
     if err != nil {
@@ -88,6 +92,30 @@ func (v *VincaDatabase) FetchStoreHistory(usr *User) []Store {
     }
 
     rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, description, icon, color from stores where user_id = ? order by last_used desc limit 8", usr.Id)
+    if err != nil {
+        log.Println("unable to fetch stores:", err)
+        return nil
+    }
+
+    var stores []Store
+    for rows.Next() {
+        var st = Store{}
+        err = rows.Scan(&st.Id, &st.Container, &st.Category,
+                        &st.Created, &st.LastUsed, &st.Modified,
+                        &st.Name, &st.Description, &st.Icon, &st.Color)
+        if err != nil {
+            log.Println("unable to scan single store:", err)
+            continue
+        }
+        stores = append(stores, st)
+    }
+    return stores
+}
+
+func (v *VincaDatabase) FetchStoreQuery(usr *User, sq StoreQuery) []Store {
+    sq.Query = "%" + sq.Query + "%"
+    rows, err := v.db.Query("select id, container_id, category_id, created, last_used, modified, name, description, icon, color from stores where user_id = ? and (name like ? or description like ?) order by name asc limit 8",
+             usr.Id, sq.Query, sq.Query)
     if err != nil {
         log.Println("unable to fetch stores:", err)
         return nil

@@ -48,7 +48,6 @@ func api_auth_register(r *Request) interface{} {
     if err := r.Decode(&usr.UserParam); err != nil {
         return err
     }
-    log.Printf("%v\n", usr)
 
     if !usr.Valid() {
         log.Println("invalid user data received, try again")
